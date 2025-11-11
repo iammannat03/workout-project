@@ -85,13 +85,14 @@ function normalizeAttributeValue(value: string): ExerciseAttributeValueEnum {
   throw new Error(`Unknown attribute value: ${value}`);
 }
 
-async function ensureAttributeValueExists(value: ExerciseAttributeValueEnum) {
+async function ensureAttributeValueExists(value: ExerciseAttributeValueEnum, attributeNameId: string) {
   // The value field stores the enum as a string
   const valueString = String(value);
-  
+
   let attributeValue = await prisma.exerciseAttributeValue.findFirst({
     where: {
       value: valueString,
+      attributeNameId: attributeNameId,
     },
   });
 
@@ -99,6 +100,7 @@ async function ensureAttributeValueExists(value: ExerciseAttributeValueEnum) {
     attributeValue = await prisma.exerciseAttributeValue.create({
       data: {
         value: valueString,
+        attributeNameId: attributeNameId,
       },
     });
   }
@@ -127,6 +129,13 @@ async function importExercisesFromCSV(filePath: string) {
 
           for (const exercise of exercises) {
             try {
+              // Skip exercises with missing required fields
+              if (!exercise.name || !exercise.name.trim()) {
+                console.log(`\n⏭️  Skipping exercise with missing name (id: ${exercise.originalId})...`);
+                errors++;
+                continue;
+              }
+
               console.log(`\n🔄 Processing "${exercise.name}"...`);
 
               // Create or update the exercise (simplified version)
@@ -167,7 +176,7 @@ async function importExercisesFromCSV(filePath: string) {
                 try {
                   const attributeName = await ensureAttributeNameExists(attr.attributeName as ExerciseAttributeNameEnum);
                   const normalizedValue = normalizeAttributeValue(attr.attributeValue);
-                  const attributeValue = await ensureAttributeValueExists(normalizedValue);
+                  const attributeValue = await ensureAttributeValueExists(normalizedValue, attributeName.id);
 
                   await prisma.exerciseAttribute.create({
                     data: {

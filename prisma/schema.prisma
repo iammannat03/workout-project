@@ -52,7 +52,7 @@ model UserFavoriteExercise {
   id         String   @id @default(cuid())
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  exerciseId Int
+  exerciseId String
   exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
   updatedAt  DateTime @updatedAt
 
@@ -121,10 +121,9 @@ model Feedbacks {
 }
 
 model Exercise {
-  id          Int      @id @default(autoincrement())
+  id          String   @id @default(cuid())
   name        String   @db.Text
   description String?  @db.Text
-  image       String?  @db.Text
   nameEn      String?  @db.Text
   descriptionEn String? @db.Text
   fullVideoUrl String? @db.Text
@@ -142,38 +141,42 @@ model Exercise {
   ProgramSessionExercise ProgramSessionExercise[]
   favoritesByUsers       UserFavoriteExercise[]
 
-  @@map("Exercise")
+  @@map("exercises")
 }
 
 model ExerciseAttributeName {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique @db.Text
+  id        String   @id @default(cuid())
+  name      ExerciseAttributeNameEnum @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  attributes ExerciseAttribute[]
+  attributes     ExerciseAttribute[]
+  attributeValues ExerciseAttributeValue[]
 
-  @@map("AttributeName")
+  @@map("exercise_attribute_names")
 }
 
 model ExerciseAttributeValue {
-  id        Int      @id @default(autoincrement())
-  value     String   @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  attributeNameId String
+  value          ExerciseAttributeValueEnum
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
-  attributes ExerciseAttribute[]
+  attributeName ExerciseAttributeName @relation(fields: [attributeNameId], references: [id], onDelete: Restrict)
+  attributes    ExerciseAttribute[]
 
-  @@map("AttributeValue")
+  @@unique([attributeNameId, value])
+  @@map("exercise_attribute_values")
 }
 
 model ExerciseAttribute {
-  id               Int      @id @default(autoincrement())
-  exerciseId       Int
-  attributeNameId  Int
-  attributeValueId Int
+  id               String   @id @default(cuid())
+  exerciseId       String
+  attributeNameId  String
+  attributeValueId String
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -183,7 +186,7 @@ model ExerciseAttribute {
   attributeValue ExerciseAttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
 
   @@unique([exerciseId, attributeNameId, attributeValueId])
-  @@map("ExerciseAttribute")
+  @@map("exercise_attributes")
 }
 
 // Enums
@@ -308,7 +311,7 @@ model WorkoutSession {
 model WorkoutSessionExercise {
   id               String         @id @default(cuid())
   workoutSessionId String
-  exerciseId       Int
+  exerciseId       String
   order            Int
   workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
   exercise         Exercise       @relation(fields: [exerciseId], references: [id])
@@ -646,7 +649,7 @@ model ProgramSession {
 model ProgramSessionExercise {
   id               String @id @default(cuid())
   sessionId        String
-  exerciseId       Int
+  exerciseId       String
   order            Int
   instructions     String @db.Text
   instructionsEn   String @db.Text
